@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useListing } from "@/hooks/useListings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ReviewSection from "@/components/ReviewSection";
 
 const defaultImages = {
   farm: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=600&fit=crop",
@@ -155,6 +156,9 @@ const ListingDetail = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Reviews Section */}
+            <ReviewSection listingId={listing.id} />
           </div>
 
           {/* Sidebar */}
