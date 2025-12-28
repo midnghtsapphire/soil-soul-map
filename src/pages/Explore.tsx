@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, List, Map } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import ListingCard from "@/components/ListingCard";
+import ExploreMap from "@/components/ExploreMap";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useListings, ListingType } from "@/hooks/useListings";
@@ -35,6 +37,10 @@ const defaultImages = {
 const Explore = () => {
   const { data: listings = [], isLoading } = useListings();
   const { data: statsMap = {} } = useAllListingStats();
+  
+  // View mode
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -216,11 +222,21 @@ const Explore = () => {
           </div>
         )}
 
-        {/* Results Count */}
-        <div className="mb-6">
+        {/* Results Count & View Toggle */}
+        <div className="flex items-center justify-between mb-6">
           <p className="text-muted-foreground">
             {isLoading ? "Loading..." : `${filteredListings.length} listing${filteredListings.length !== 1 ? "s" : ""} found`}
           </p>
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "list" | "map")}>
+            <ToggleGroupItem value="list" aria-label="List view" className="gap-2">
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">List</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="map" aria-label="Map view" className="gap-2">
+              <Map className="w-4 h-4" />
+              <span className="hidden sm:inline">Map</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* Listings Grid */}
@@ -233,6 +249,8 @@ const Explore = () => {
               Clear Filters
             </Button>
           </div>
+        ) : viewMode === "map" ? (
+          <ExploreMap listings={filteredListings} className="h-[600px]" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredListings.map((listing, index) => {
