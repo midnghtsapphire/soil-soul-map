@@ -62,6 +62,25 @@ export const useListings = () => {
   });
 };
 
+export const useListing = (id: string | undefined) => {
+  return useQuery({
+    queryKey: ["listing", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("listings")
+        .select("*")
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as Listing | null;
+    },
+    enabled: !!id,
+  });
+};
+
 export const useUserListings = (userId: string | undefined) => {
   return useQuery({
     queryKey: ["user-listings", userId],

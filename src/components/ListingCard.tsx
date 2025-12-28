@@ -1,9 +1,11 @@
+import { Link } from "react-router-dom";
 import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 interface ListingCardProps {
+  id?: string;
   type: "farm" | "market" | "restaurant";
   name: string;
   location: string;
@@ -16,6 +18,7 @@ interface ListingCardProps {
 }
 
 const ListingCard = ({
+  id,
   type,
   name,
   location,
@@ -32,8 +35,8 @@ const ListingCard = ({
     restaurant: { badge: "Restaurant", variant: "restaurant" as const },
   };
 
-  return (
-    <Card variant="elevated" className="overflow-hidden group cursor-pointer">
+  const cardContent = (
+    <>
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
         <img
@@ -95,6 +98,22 @@ const ListingCard = ({
           <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
         </Button>
       </CardContent>
+    </>
+  );
+
+  if (id) {
+    return (
+      <Link to={`/listing/${id}`}>
+        <Card variant="elevated" className="overflow-hidden group cursor-pointer">
+          {cardContent}
+        </Card>
+      </Link>
+    );
+  }
+
+  return (
+    <Card variant="elevated" className="overflow-hidden group cursor-pointer">
+      {cardContent}
     </Card>
   );
 };

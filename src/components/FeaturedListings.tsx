@@ -76,7 +76,8 @@ const FeaturedListings = () => {
                   animationFillMode: "forwards",
                 }}
               >
-                <ListingCard
+              <ListingCard
+                  id={listing.id}
                   type={listing.type}
                   name={listing.name}
                   location={`${listing.city}, ${listing.state}`}
