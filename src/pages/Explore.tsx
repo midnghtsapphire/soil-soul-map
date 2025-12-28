@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, X, MapPin, List, Map } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, List, Map, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,7 @@ const Explore = () => {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedPractices, setSelectedPractices] = useState<string[]>([]);
   const [selectedState, setSelectedState] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   // Get unique states from listings
   const availableStates = useMemo(() => {
@@ -55,7 +56,7 @@ const Explore = () => {
 
   // Filter listings
   const filteredListings = useMemo(() => {
-    return listings.filter((listing) => {
+    let result = listings.filter((listing) => {
       // Search query (name, city, description, products)
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery || 
@@ -77,7 +78,29 @@ const Explore = () => {
 
       return matchesSearch && matchesType && matchesState && matchesPractices;
     });
-  }, [listings, searchQuery, selectedType, selectedState, selectedPractices]);
+
+    // Sort listings
+    switch (sortBy) {
+      case "rating":
+        result = [...result].sort((a, b) => {
+          const ratingA = statsMap[a.id]?.averageRating || 0;
+          const ratingB = statsMap[b.id]?.averageRating || 0;
+          return ratingB - ratingA;
+        });
+        break;
+      case "name":
+        result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case "newest":
+      default:
+        result = [...result].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        break;
+    }
+
+    return result;
+  }, [listings, searchQuery, selectedType, selectedState, selectedPractices, sortBy, statsMap]);
 
   const togglePractice = (practice: string) => {
     setSelectedPractices(prev => 
@@ -186,6 +209,21 @@ const Explore = () => {
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Sort */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full md:w-[160px]">
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4" />
+                <SelectValue placeholder="Sort by" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="rating">Highest Rated</SelectItem>
+              <SelectItem value="name">Name (A-Z)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Active Filters */}
