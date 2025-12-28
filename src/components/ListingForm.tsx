@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Upload, Image as ImageIcon } from "lucide-react";
 import { useCreateListing, useUpdateListing, ListingInsert, Listing, ListingType } from "@/hooks/useListings";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface ListingFormProps {
   listing?: Listing;
@@ -47,9 +49,68 @@ const ListingForm = ({ listing, onSuccess }: ListingFormProps) => {
     website: listing?.website || "",
     practices: listing?.practices || [],
     products: listing?.products || [],
+    image_url: listing?.image_url || "",
   });
 
   const [productInput, setProductInput] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(listing?.image_url || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file type", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Image must be less than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return formData.image_url || null;
+
+    setIsUploading(true);
+    try {
+      const fileExt = imageFile.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("listing-images")
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("listing-images")
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({ title: "Upload failed", description: "Could not upload image", variant: "destructive" });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    handleChange("image_url", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleChange = (field: keyof ListingInsert, value: string | number | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -78,15 +139,18 @@ const ListingForm = ({ listing, onSuccess }: ListingFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const imageUrl = await uploadImage();
+    const dataToSubmit = { ...formData, image_url: imageUrl || undefined };
+
     if (isEditing && listing) {
-      await updateListing.mutateAsync({ id: listing.id, ...formData });
+      await updateListing.mutateAsync({ id: listing.id, ...dataToSubmit });
     } else {
-      await createListing.mutateAsync(formData);
+      await createListing.mutateAsync(dataToSubmit);
     }
     onSuccess?.();
   };
 
-  const isLoading = createListing.isPending || updateListing.isPending;
+  const isLoading = createListing.isPending || updateListing.isPending || isUploading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -135,6 +199,45 @@ const ListingForm = ({ listing, onSuccess }: ListingFormProps) => {
                 rows={4}
                 required
               />
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Farm Photo</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-40 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-40 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Click to upload image</span>
+                  <span className="text-xs text-muted-foreground/70">Max 5MB</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
