@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserListings, useDeleteListing, Listing } from "@/hooks/useListings";
+import { useFavoriteListings } from "@/hooks/useFavorites";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import ListingForm from "@/components/ListingForm";
-import { Leaf, Plus, LogOut, MapPin, Edit, Trash2, ExternalLink, ArrowLeft } from "lucide-react";
+import { Leaf, Plus, LogOut, MapPin, Edit, Trash2, ArrowLeft, Heart, Star } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { data: listings, isLoading: listingsLoading } = useUserListings(user?.id);
+  const { data: favoriteListings, isLoading: favoritesLoading } = useFavoriteListings(user?.id);
   const deleteListing = useDeleteListing();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -95,7 +97,75 @@ const Dashboard = () => {
               </DialogHeader>
               <ListingForm onSuccess={() => setIsCreateOpen(false)} />
             </DialogContent>
-          </Dialog>
+        </Dialog>
+        </div>
+
+        {/* My Favorites Section */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-4">
+            <Heart className="w-5 h-5 text-destructive" />
+            <h2 className="font-display text-xl font-semibold">My Favorites</h2>
+          </div>
+          
+          {favoritesLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <Skeleton className="h-32 w-full" />
+                  <CardContent className="p-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : !favoriteListings?.length ? (
+            <Card className="text-center py-8 bg-muted/30">
+              <CardContent>
+                <Heart className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-muted-foreground">No favorites yet. Explore listings and save your favorites!</p>
+                <Button variant="outline" className="mt-4" asChild>
+                  <Link to="/explore">Explore Listings</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {favoriteListings.map((listing: any) => (
+                <Link key={listing.id} to={`/listing/${listing.id}`}>
+                  <Card className="group hover:shadow-card-hover transition-shadow overflow-hidden h-full">
+                    {listing.image_url && (
+                      <div className="h-32 overflow-hidden">
+                        <img 
+                          src={listing.image_url} 
+                          alt={listing.name}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      </div>
+                    )}
+                    <CardContent className="p-3">
+                      <Badge className={`${getTypeColor(listing.type)} text-xs`} variant="secondary">
+                        {listing.type}
+                      </Badge>
+                      <h3 className="font-medium text-sm mt-2 group-hover:text-primary transition-colors truncate">
+                        {listing.name}
+                      </h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{listing.city}, {listing.state}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* My Listings Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Leaf className="w-5 h-5 text-primary" />
+          <h2 className="font-display text-xl font-semibold">My Listings</h2>
         </div>
 
         {/* Listings Grid */}
