@@ -178,3 +178,39 @@ export const useListingStats = (listingId: string | undefined) => {
     enabled: !!listingId,
   });
 };
+
+export interface ListingStatsMap {
+  [listingId: string]: { averageRating: number; reviewCount: number };
+}
+
+export const useAllListingStats = () => {
+  return useQuery({
+    queryKey: ["all-listing-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("listing_id, rating");
+
+      if (error) throw error;
+
+      // Group by listing_id and calculate stats
+      const statsMap: ListingStatsMap = {};
+      const groupedByListing: { [key: string]: number[] } = {};
+
+      data.forEach((review) => {
+        if (!groupedByListing[review.listing_id]) {
+          groupedByListing[review.listing_id] = [];
+        }
+        groupedByListing[review.listing_id].push(review.rating);
+      });
+
+      Object.entries(groupedByListing).forEach(([listingId, ratings]) => {
+        const reviewCount = ratings.length;
+        const averageRating = ratings.reduce((sum, r) => sum + r, 0) / reviewCount;
+        statsMap[listingId] = { averageRating, reviewCount };
+      });
+
+      return statsMap;
+    },
+  });
+};

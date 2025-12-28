@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import ListingCard from "./ListingCard";
 import { Button } from "@/components/ui/button";
 import { Sprout, Store, UtensilsCrossed } from "lucide-react";
 import { useListings } from "@/hooks/useListings";
+import { useAllListingStats } from "@/hooks/useReviews";
 
 const categories = [
   { id: "all", name: "All", icon: null },
@@ -20,6 +22,7 @@ const defaultImages = {
 const FeaturedListings = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const { data: listings = [], isLoading } = useListings();
+  const { data: statsMap = {} } = useAllListingStats();
 
   const filteredListings =
     activeCategory === "all"
@@ -67,35 +70,38 @@ const FeaturedListings = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.slice(0, 6).map((listing, index) => (
-              <div
-                key={listing.id}
-                className="animate-fade-in-up opacity-0"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                  animationFillMode: "forwards",
-                }}
-              >
-              <ListingCard
-                  id={listing.id}
-                  type={listing.type}
-                  name={listing.name}
-                  location={`${listing.city}, ${listing.state}`}
-                  distance="Nearby"
-                  rating={4.5}
-                  reviewCount={0}
-                  tags={listing.practices?.slice(0, 3) || []}
-                  image={listing.image_url || defaultImages[listing.type]}
-                />
-              </div>
-            ))}
+            {filteredListings.slice(0, 6).map((listing, index) => {
+              const stats = statsMap[listing.id] || { averageRating: 0, reviewCount: 0 };
+              return (
+                <div
+                  key={listing.id}
+                  className="animate-fade-in-up opacity-0"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    animationFillMode: "forwards",
+                  }}
+                >
+                  <ListingCard
+                    id={listing.id}
+                    type={listing.type}
+                    name={listing.name}
+                    location={`${listing.city}, ${listing.state}`}
+                    distance="Nearby"
+                    rating={stats.averageRating}
+                    reviewCount={stats.reviewCount}
+                    tags={listing.practices?.slice(0, 3) || []}
+                    image={listing.image_url || defaultImages[listing.type]}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* View More CTA */}
         <div className="text-center mt-12">
           <Button variant="warm" size="lg" asChild>
-            <a href="/explore">Explore All Listings</a>
+            <Link to="/explore">Explore All Listings</Link>
           </Button>
         </div>
       </div>
