@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import InteractiveMap from "./InteractiveMap";
 
 const MapPreview = () => {
   return (
@@ -38,64 +39,8 @@ const MapPreview = () => {
             </Button>
           </div>
 
-          {/* Map Preview */}
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-card bg-card border border-border">
-            {/* Map Placeholder with styled design */}
-            <div className="absolute inset-0 bg-gradient-to-br from-sage/30 via-muted to-wheat/30">
-              {/* Grid Pattern */}
-              <svg className="absolute inset-0 w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-border" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
-
-              {/* Sample Markers */}
-              <div className="absolute top-[30%] left-[25%] animate-pulse-soft">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 text-primary-foreground" />
-                </div>
-              </div>
-              <div className="absolute top-[45%] left-[55%] animate-pulse-soft" style={{ animationDelay: "300ms" }}>
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              </div>
-              <div className="absolute top-[60%] left-[35%] animate-pulse-soft" style={{ animationDelay: "600ms" }}>
-                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 text-accent-foreground" />
-                </div>
-              </div>
-              <div className="absolute top-[25%] left-[70%] animate-pulse-soft" style={{ animationDelay: "450ms" }}>
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 text-primary-foreground" />
-                </div>
-              </div>
-              <div className="absolute top-[70%] left-[65%] animate-pulse-soft" style={{ animationDelay: "150ms" }}>
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-6 p-3 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-primary" />
-                <span className="text-muted-foreground">Farms</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-secondary" />
-                <span className="text-muted-foreground">Markets</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-accent" />
-                <span className="text-muted-foreground">Restaurants</span>
-              </div>
-            </div>
-          </div>
+          {/* Interactive Map */}
+          <InteractiveMap className="aspect-[4/3]" />
         </div>
       </div>
     </section>
