@@ -94,8 +94,8 @@ const FeaturedListings = () => {
 
         {/* View More CTA */}
         <div className="text-center mt-12">
-          <Button variant="warm" size="lg">
-            Explore All Listings
+          <Button variant="warm" size="lg" asChild>
+            <a href="/explore">Explore All Listings</a>
           </Button>
         </div>
       </div>

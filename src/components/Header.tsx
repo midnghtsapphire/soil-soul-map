@@ -9,10 +9,9 @@ const Header = () => {
   const { user, loading } = useAuth();
 
   const navLinks = [
-    { name: "Find Farms", href: "#farms" },
-    { name: "Markets", href: "#markets" },
-    { name: "Restaurants", href: "#restaurants" },
-    { name: "Learn", href: "#learn" },
+    { name: "Explore", href: "/explore" },
+    { name: "Find Farms", href: "/#farms" },
+    { name: "Learn", href: "/#learn" },
   ];
 
   return (
@@ -32,13 +31,13 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
+                to={link.href}
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 rounded-lg hover:bg-muted"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -79,13 +78,14 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-border/50 animate-fade-in">
             <nav className="flex flex-col gap-2">
               {navLinks.map((link) => (
-                <a
+                <Link
                   key={link.name}
-                  href={link.href}
+                  to={link.href}
                   className="px-4 py-3 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.name}
-                </a>
+                </Link>
               ))}
               <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-border/50">
                 {user ? (
