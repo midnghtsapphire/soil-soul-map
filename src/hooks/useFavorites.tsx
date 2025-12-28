@@ -26,6 +26,26 @@ export const useUserFavorites = (userId: string | undefined) => {
   });
 };
 
+export const useFavoriteListings = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: ["favorite-listings", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("favorites")
+        .select(`
+          listing_id,
+          listings (*)
+        `)
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      return data?.map(f => f.listings).filter(Boolean) ?? [];
+    },
+    enabled: !!userId,
+  });
+};
+
 export const useIsFavorite = (listingId: string | undefined, userId: string | undefined) => {
   const { data: favorites = [] } = useUserFavorites(userId);
   return favorites.some(f => f.listing_id === listingId);
