@@ -26,21 +26,44 @@ export const useUserFavorites = (userId: string | undefined) => {
   });
 };
 
-export const useFavoriteListings = (userId: string | undefined) => {
+export interface FavoriteWithListing {
+  id: string;
+  listing_id: string;
+  collection_id: string | null;
+  listing: any;
+}
+
+export const useFavoriteListings = (userId: string | undefined, collectionId?: string | null) => {
   return useQuery({
-    queryKey: ["favorite-listings", userId],
+    queryKey: ["favorite-listings", userId, collectionId],
     queryFn: async () => {
       if (!userId) return [];
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from("favorites")
         .select(`
+          id,
           listing_id,
+          collection_id,
           listings (*)
         `)
         .eq("user_id", userId);
 
+      if (collectionId === "uncategorized") {
+        query = query.is("collection_id", null);
+      } else if (collectionId && collectionId !== "all") {
+        query = query.eq("collection_id", collectionId);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
-      return data?.map(f => f.listings).filter(Boolean) ?? [];
+      return data?.map(f => ({
+        id: f.id,
+        listing_id: f.listing_id,
+        collection_id: f.collection_id,
+        listing: f.listings,
+      })).filter(f => f.listing) ?? [];
     },
     enabled: !!userId,
   });
