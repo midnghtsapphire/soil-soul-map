@@ -3,6 +3,7 @@ import { MapPin, Clock, Star, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import FavoriteButton from "@/components/FavoriteButton";
 
 interface ListingCardProps {
   id?: string;
@@ -49,10 +50,13 @@ const ListingCard = ({
             {typeConfig[type].badge}
           </Badge>
         </div>
-        <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-full bg-card/90 backdrop-blur-sm text-sm">
-          <Star className="w-4 h-4 fill-accent text-accent" />
-          <span className="font-medium">{rating.toFixed(1)}</span>
-          <span className="text-muted-foreground">({reviewCount})</span>
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          {id && <FavoriteButton listingId={id} />}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-card/90 backdrop-blur-sm text-sm">
+            <Star className="w-4 h-4 fill-accent text-accent" />
+            <span className="font-medium">{rating.toFixed(1)}</span>
+            <span className="text-muted-foreground">({reviewCount})</span>
+          </div>
         </div>
       </div>
 

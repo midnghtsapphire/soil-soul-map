@@ -8,6 +8,7 @@ import { useListing } from "@/hooks/useListings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewSection from "@/components/ReviewSection";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const defaultImages = {
   farm: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=600&fit=crop",
@@ -94,6 +95,9 @@ const ListingDetail = () => {
                 Verified
               </Badge>
             )}
+          </div>
+          <div className="absolute top-4 right-4">
+            <FavoriteButton listingId={listing.id} variant="default" />
           </div>
         </div>
 
