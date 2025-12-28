@@ -14,26 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      collections: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
+          collection_id: string | null
           created_at: string
           id: string
           listing_id: string
           user_id: string
         }
         Insert: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           listing_id: string
           user_id: string
         }
         Update: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           listing_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "favorites_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "favorites_listing_id_fkey"
             columns: ["listing_id"]

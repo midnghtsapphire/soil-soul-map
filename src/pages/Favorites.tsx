@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, X, MapPin, ArrowUpDown, Heart } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, ArrowUpDown, Heart, FolderPlus, Folder, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import ListingCard from "@/components/ListingCard";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useFavoriteListings } from "@/hooks/useFavorites";
+import { useCollections, useCreateCollection, useUpdateCollection, useDeleteCollection, useAssignToCollection } from "@/hooks/useCollections";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllListingStats } from "@/hooks/useReviews";
 import { Link } from "react-router-dom";
@@ -36,9 +40,22 @@ const defaultImages = {
 
 const Favorites = () => {
   const { user, loading: authLoading } = useAuth();
-  const { data: listings = [], isLoading } = useFavoriteListings(user?.id);
+  const [selectedCollection, setSelectedCollection] = useState<string>("all");
+  const { data: favoritesData = [], isLoading } = useFavoriteListings(user?.id, selectedCollection);
+  const { data: collections = [] } = useCollections(user?.id);
   const { data: statsMap = {} } = useAllListingStats();
   
+  const createCollection = useCreateCollection();
+  const updateCollection = useUpdateCollection();
+  const deleteCollection = useDeleteCollection();
+  const assignToCollection = useAssignToCollection();
+
+  // Collection form state
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [editingCollection, setEditingCollection] = useState<{ id: string; name: string } | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
@@ -46,15 +63,21 @@ const Favorites = () => {
   const [selectedState, setSelectedState] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
 
+  // Extract listings from favorites data
+  const listings = useMemo(() => favoritesData.map(f => f.listing), [favoritesData]);
+
   // Get unique states from listings
   const availableStates = useMemo(() => {
-    const states = [...new Set(listings.map((l: any) => l.state))].filter(Boolean).sort();
+    const states = [...new Set(listings.map((l: any) => l?.state))].filter(Boolean).sort();
     return states as string[];
   }, [listings]);
 
   // Filter listings
-  const filteredListings = useMemo(() => {
-    let result = listings.filter((listing: any) => {
+  const filteredFavorites = useMemo(() => {
+    let result = favoritesData.filter((fav) => {
+      const listing = fav.listing;
+      if (!listing) return false;
+      
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery || 
         listing.name.toLowerCase().includes(searchLower) ||
@@ -73,25 +96,25 @@ const Favorites = () => {
 
     switch (sortBy) {
       case "rating":
-        result = [...result].sort((a: any, b: any) => {
-          const ratingA = statsMap[a.id]?.averageRating || 0;
-          const ratingB = statsMap[b.id]?.averageRating || 0;
+        result = [...result].sort((a, b) => {
+          const ratingA = statsMap[a.listing?.id]?.averageRating || 0;
+          const ratingB = statsMap[b.listing?.id]?.averageRating || 0;
           return ratingB - ratingA;
         });
         break;
       case "name":
-        result = [...result].sort((a: any, b: any) => a.name.localeCompare(b.name));
+        result = [...result].sort((a, b) => (a.listing?.name || "").localeCompare(b.listing?.name || ""));
         break;
       case "newest":
       default:
-        result = [...result].sort((a: any, b: any) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        result = [...result].sort((a, b) => 
+          new Date(b.listing?.created_at || 0).getTime() - new Date(a.listing?.created_at || 0).getTime()
         );
         break;
     }
 
     return result;
-  }, [listings, searchQuery, selectedType, selectedState, selectedPractices, sortBy, statsMap]);
+  }, [favoritesData, searchQuery, selectedType, selectedState, selectedPractices, sortBy, statsMap]);
 
   const togglePractice = (practice: string) => {
     setSelectedPractices(prev => 
@@ -106,6 +129,38 @@ const Favorites = () => {
     setSelectedType("all");
     setSelectedState("all");
     setSelectedPractices([]);
+  };
+
+  const handleCreateCollection = () => {
+    if (newCollectionName.trim()) {
+      createCollection.mutate({ name: newCollectionName }, {
+        onSuccess: () => {
+          setNewCollectionName("");
+          setCreateDialogOpen(false);
+        }
+      });
+    }
+  };
+
+  const handleUpdateCollection = () => {
+    if (editingCollection && editingCollection.name.trim()) {
+      updateCollection.mutate({ id: editingCollection.id, name: editingCollection.name }, {
+        onSuccess: () => {
+          setEditingCollection(null);
+          setEditDialogOpen(false);
+        }
+      });
+    }
+  };
+
+  const handleDeleteCollection = (id: string) => {
+    deleteCollection.mutate(id, {
+      onSuccess: () => {
+        if (selectedCollection === id) {
+          setSelectedCollection("all");
+        }
+      }
+    });
   };
 
   const hasActiveFilters = searchQuery || selectedType !== "all" || selectedState !== "all" || selectedPractices.length > 0;
@@ -151,6 +206,153 @@ const Favorites = () => {
             Your saved regenerative farms, markets, and restaurants
           </p>
         </div>
+
+        {/* Collections Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg font-medium text-foreground flex items-center gap-2">
+              <Folder className="w-5 h-5" />
+              Collections
+            </h2>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <FolderPlus className="w-4 h-4" />
+                  New Collection
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Collection</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="collection-name">Collection Name</Label>
+                  <Input
+                    id="collection-name"
+                    value={newCollectionName}
+                    onChange={(e) => setNewCollectionName(e.target.value)}
+                    placeholder="e.g., Weekend trips, Local picks"
+                    className="mt-2"
+                    maxLength={50}
+                  />
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button 
+                    onClick={handleCreateCollection} 
+                    disabled={!newCollectionName.trim() || createCollection.isPending}
+                  >
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedCollection === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCollection("all")}
+            >
+              All Favorites
+            </Button>
+            <Button
+              variant={selectedCollection === "uncategorized" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCollection("uncategorized")}
+            >
+              Uncategorized
+            </Button>
+            {collections.map((collection) => (
+              <div key={collection.id} className="flex items-center gap-1">
+                <Button
+                  variant={selectedCollection === collection.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCollection(collection.id)}
+                >
+                  {collection.name}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditingCollection({ id: collection.id, name: collection.name });
+                        setEditDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Collection?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will delete "{collection.name}". Favorites in this collection will become uncategorized.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteCollection(collection.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Edit Collection Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename Collection</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Label htmlFor="edit-collection-name">Collection Name</Label>
+              <Input
+                id="edit-collection-name"
+                value={editingCollection?.name || ""}
+                onChange={(e) => setEditingCollection(prev => prev ? { ...prev, name: e.target.value } : null)}
+                placeholder="Collection name"
+                className="mt-2"
+                maxLength={50}
+              />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button 
+                onClick={handleUpdateCollection} 
+                disabled={!editingCollection?.name.trim() || updateCollection.isPending}
+              >
+                Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Search & Filter Bar */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -276,19 +478,25 @@ const Favorites = () => {
         {/* Results Count */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-muted-foreground">
-            {isLoading ? "Loading..." : `${filteredListings.length} favorite${filteredListings.length !== 1 ? "s" : ""}`}
+            {isLoading ? "Loading..." : `${filteredFavorites.length} favorite${filteredFavorites.length !== 1 ? "s" : ""}`}
           </p>
         </div>
 
         {/* Listings Grid */}
         {isLoading || authLoading ? (
           <div className="text-center text-muted-foreground py-12">Loading favorites...</div>
-        ) : filteredListings.length === 0 ? (
+        ) : filteredFavorites.length === 0 ? (
           <div className="text-center py-16">
-            {listings.length === 0 ? (
+            {favoritesData.length === 0 ? (
               <>
                 <Heart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg mb-4">You haven't saved any favorites yet</p>
+                <p className="text-muted-foreground text-lg mb-4">
+                  {selectedCollection === "all" 
+                    ? "You haven't saved any favorites yet" 
+                    : selectedCollection === "uncategorized"
+                    ? "No uncategorized favorites"
+                    : "No favorites in this collection"}
+                </p>
                 <Button asChild>
                   <Link to="/explore">Explore Listings</Link>
                 </Button>
@@ -304,12 +512,13 @@ const Favorites = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing: any, index: number) => {
+            {filteredFavorites.map((fav, index: number) => {
+              const listing = fav.listing;
               const stats = statsMap[listing.id] || { averageRating: 0, reviewCount: 0 };
               return (
                 <div
-                  key={listing.id}
-                  className="animate-fade-in-up opacity-0"
+                  key={fav.id}
+                  className="animate-fade-in-up opacity-0 relative"
                   style={{
                     animationDelay: `${Math.min(index, 8) * 50}ms`,
                     animationFillMode: "forwards",
@@ -326,6 +535,36 @@ const Favorites = () => {
                     tags={listing.practices?.slice(0, 3) || []}
                     image={listing.image_url || defaultImages[listing.type as keyof typeof defaultImages]}
                   />
+                  {/* Collection assignment dropdown */}
+                  {collections.length > 0 && (
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="secondary" size="sm" className="gap-1 shadow-md">
+                            <Folder className="w-3 h-3" />
+                            {fav.collection_id 
+                              ? collections.find(c => c.id === fav.collection_id)?.name || "Move"
+                              : "Add to..."}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover">
+                          {fav.collection_id && (
+                            <DropdownMenuItem onClick={() => assignToCollection.mutate({ favoriteId: fav.id, collectionId: null })}>
+                              Remove from collection
+                            </DropdownMenuItem>
+                          )}
+                          {collections.filter(c => c.id !== fav.collection_id).map((collection) => (
+                            <DropdownMenuItem 
+                              key={collection.id}
+                              onClick={() => assignToCollection.mutate({ favoriteId: fav.id, collectionId: collection.id })}
+                            >
+                              {collection.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
               );
             })}
