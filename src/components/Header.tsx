@@ -1,9 +1,12 @@
 import { Leaf, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
 
   const navLinks = [
     { name: "Find Farms", href: "#farms" },
@@ -17,14 +20,14 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-soft group-hover:shadow-card transition-shadow duration-300">
               <Leaf className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-semibold text-foreground hidden sm:block">
               RegenFood
             </span>
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
@@ -41,10 +44,20 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Sign In
-            </Button>
-            <Button size="sm">List Your Farm</Button>
+            {loading ? null : user ? (
+              <Button asChild size="sm">
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/auth">List Your Farm</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,10 +88,20 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-border/50">
-                <Button variant="ghost" className="w-full justify-center">
-                  Sign In
-                </Button>
-                <Button className="w-full">List Your Farm</Button>
+                {user ? (
+                  <Button asChild className="w-full">
+                    <Link to="/dashboard">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="w-full justify-center" asChild>
+                      <Link to="/auth">Sign In</Link>
+                    </Button>
+                    <Button className="w-full" asChild>
+                      <Link to="/auth">List Your Farm</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
